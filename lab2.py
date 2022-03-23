@@ -72,6 +72,12 @@ knn = KNeighborsClassifier(n_neighbors=9)
 knn.fit(X_train, y_train)
 y_pred = knn.predict(X_test)
 
+
+print(df.iloc[169], df.iloc[1111], sep='\n')
+test_pred1 = knn.predict([df.iloc[169, [0, 1, 2, 3, 4, 5]]])
+test_pred2 = knn.predict([df.iloc[1111, [0, 1, 2, 3, 4, 5]]])
+print(test_pred1, test_pred2)
+
 acc = accuracy_score(y_test, y_pred)
 print(acc)
 
