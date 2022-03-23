@@ -50,6 +50,27 @@ def test_k(X, y):
     plt.ylabel('F_measure')
     plt.show()
 
+def plot_data(X_train, y_train):
+    X = X_train[:, 4:6]
+    y = y_train
+    h = .02
+    knn = KNeighborsClassifier(n_neighbors=9)
+    knn.fit(X, y)
+
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                         np.arange(y_min, y_max, h))
+    Z = knn.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+
+    plt.figure()
+    plt.pcolormesh(xx, yy, Z, cmap=cmap_light)
+    plt.scatter(X[:, 0], X[:, 1], c=y, cmap=cmap_bold)
+    plt.xlim(xx.min(), xx.max())
+    plt.ylim(yy.min(), yy.max())
+    plt.show()
+
 df = pd.read_csv('dream_market_cocaine_listings.csv', delimiter=',', encoding ='latin-1')
 df = df[categories]
 
@@ -65,7 +86,7 @@ print(df)
 X = df.iloc[:, [0, 1, 2, 3, 4, 5]].values
 y = df.iloc[:, -1].values
 
-#test_k(X, y)
+test_k(X, y)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
 knn = KNeighborsClassifier(n_neighbors=9)
@@ -81,22 +102,5 @@ print(test_pred1, test_pred2)
 acc = accuracy_score(y_test, y_pred)
 print(acc)
 
-X = X_train[:, 4:6]
-y = y_train
-h = .02
-knn = KNeighborsClassifier(n_neighbors=9)
-knn.fit(X, y)
-
-x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                     np.arange(y_min, y_max, h))
-Z = knn.predict(np.c_[xx.ravel(), yy.ravel()])
-Z = Z.reshape(xx.shape)
-
-plt.figure()
-plt.pcolormesh(xx, yy, Z, cmap=cmap_light)
-plt.scatter(X[:, 0], X[:, 1], c=y, cmap=cmap_bold)
-plt.xlim(xx.min(), xx.max())
-plt.ylim(yy.min(), yy.max())
-plt.show()
+# график
+plot_data(X_train, y_train)
