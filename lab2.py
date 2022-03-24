@@ -8,16 +8,13 @@ from sklearn import neighbors, datasets
 
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.model_selection import cross_val_score, train_test_split
 
 from matplotlib.colors import ListedColormap
 
 from prettytable import PrettyTable
-
-from mpl_toolkits.mplot3d import Axes3D
-
-from sklearn.model_selection import GridSearchCV
 
 le = LabelEncoder()
 categories = ['product_title', 'ships_from_to', 'quality', 'btc_price', 'cost_per_gram', 'product_link', 'escrow']
@@ -50,18 +47,22 @@ def test_k(X, y):
     plt.ylabel('F_measure')
     plt.show()
 
-def plot_data(X_train, y_train):
+
+def plot_data(X_train, y_train, clf = 'knn'):
     X = X_train[:, 4:6]
     y = y_train
     h = .02
-    knn = KNeighborsClassifier(n_neighbors=9)
-    knn.fit(X, y)
+    if clf == 'knn':
+        clf = KNeighborsClassifier(n_neighbors=3)
+    else:
+        clf = DecisionTreeClassifier()
+    clf.fit(X, y)
 
     x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
     y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
     xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
                          np.arange(y_min, y_max, h))
-    Z = knn.predict(np.c_[xx.ravel(), yy.ravel()])
+    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
     Z = Z.reshape(xx.shape)
 
     plt.figure()
@@ -83,24 +84,29 @@ for category in categories:
 
 print(df)
 
+test1 = df.iloc[0, [0, 1, 2, 3, 4, 5]]
+test2 = df.iloc[1503, [0, 1, 2, 3, 4, 5]]
+df = df.iloc[1:1503, :]
+
+
 X = df.iloc[:, [0, 1, 2, 3, 4, 5]].values
 y = df.iloc[:, -1].values
 
-test_k(X, y)
+#test_k(X, y)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
-knn = KNeighborsClassifier(n_neighbors=9)
+knn = KNeighborsClassifier(n_neighbors=3)
 knn.fit(X_train, y_train)
 y_pred = knn.predict(X_test)
 
-
-print(df.iloc[169], df.iloc[1111], sep='\n')
-test_pred1 = knn.predict([df.iloc[169, [0, 1, 2, 3, 4, 5]]])
-test_pred2 = knn.predict([df.iloc[1111, [0, 1, 2, 3, 4, 5]]])
+print(test1, test2, sep='\n')
+test_pred1 = knn.predict([test1])
+test_pred2 = knn.predict([test2])
 print(test_pred1, test_pred2)
 
 acc = accuracy_score(y_test, y_pred)
 print(acc)
 
 # график
-plot_data(X_train, y_train)
+plot_data(X_train, y_train, 'clf')
+plot_data(X_train, y_train, 'tree')
