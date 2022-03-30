@@ -6,11 +6,17 @@ import seaborn as sns
 from scipy.special import softmax
 from sklearn import neighbors, datasets
 
+import plotly.express as px
+from sklearn.decomposition import PCA
+
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
 
 from matplotlib.colors import ListedColormap
 
@@ -79,34 +85,61 @@ print(df)
 
 for category in categories:
     df[category] = le.fit_transform(df[category])
+
     if category != 'escrow':
         df[category] = softmax(df[category])
 
+sns.pairplot(df.iloc[:1000,:])
+for category in categories:
+    print(df[category].describe())
+
 print(df)
-
-test1 = df.iloc[0, [0, 1, 2, 3, 4, 5]]
-test2 = df.iloc[1503, [0, 1, 2, 3, 4, 5]]
-df = df.iloc[1:1503, :]
-
 
 X = df.iloc[:, [0, 1, 2, 3, 4, 5]].values
 y = df.iloc[:, -1].values
 
-#test_k(X, y)
-
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
 knn = KNeighborsClassifier(n_neighbors=3)
+pca = make_pipeline(StandardScaler(), PCA(n_components=2, random_state=0))
+pca.fit(X_train, y_train)
+
+knn.fit(pca.transform(X_train), y_train)
+
+acc_knn = knn.score(pca.transform(X_test), y_test)
+print(acc_knn)
+X_embedded = pca.transform(X)
+X_embedded = X_embedded[:1499]
+
+plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=y[:1499], s=30, cmap="Set1")
+plt.show()
+
+#test_k(X, y)
+
+plt.figure()
+model.fit(X_train, y_train)
+
+pca = PCA(n_components=3)
+components = pca.fit_transform(df)
+print(components)
+total_var = pca.explained_variance_ratio_.sum() * 100
+
+fig = px.scatter_3d(
+    components, x=0, y=1, z=2, color=df['escrow'],
+    title=f'Total Explained Variance: {total_var:.2f}%',
+    labels={'0': 'PC 1', '1': 'PC 2', '2': 'PC 3'}
+)
+fig.show()
+
+
 knn.fit(X_train, y_train)
 y_pred = knn.predict(X_test)
 
 print(test1, test2, sep='\n')
-test_pred1 = knn.predict([test1])
-test_pred2 = knn.predict([test2])
 print(test_pred1, test_pred2)
 
 acc = accuracy_score(y_test, y_pred)
 print(acc)
 
 # график
-plot_data(X_train, y_train, 'clf')
-plot_data(X_train, y_train, 'tree')
+#plot_data(X_train, y_train, 'clf')
+#plot_data(X_train, y_train, 'tree')
