@@ -78,6 +78,53 @@ def plot_data(X_train, y_train, clf = 'knn'):
     plt.ylim(yy.min(), yy.max())
     plt.show()
 
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
+    knn = KNeighborsClassifier(n_neighbors=3)
+    pca = make_pipeline(StandardScaler(), PCA(n_components=2, random_state=0))
+    pca.fit(X_train, y_train)
+
+    knn.fit(pca.transform(X_train), y_train)
+
+    acc_knn = knn.score(pca.transform(X_test), y_test)
+    print(acc_knn)
+    X_embedded = pca.transform(X)
+    X_embedded = X_embedded[:1499]
+
+    plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=y[:1499], s=30, cmap="Set1")
+    plt.show()
+
+    #test_k(X, y)
+
+    plt.figure()
+    model.fit(X_train, y_train)
+
+    pca = PCA(n_components=3)
+    components = pca.fit_transform(df)
+    print(components)
+    total_var = pca.explained_variance_ratio_.sum() * 100
+
+    fig = px.scatter_3d(
+        components, x=0, y=1, z=2, color=df['escrow'],
+        title=f'Total Explained Variance: {total_var:.2f}%',
+        labels={'0': 'PC 1', '1': 'PC 2', '2': 'PC 3'}
+    )
+    fig.show()
+
+
+    knn.fit(X_train, y_train)
+    y_pred = knn.predict(X_test)
+
+    print(test1, test2, sep='\n')
+    print(test_pred1, test_pred2)
+
+    acc = accuracy_score(y_test, y_pred)
+    print(acc)
+
+    # график
+    #plot_data(X_train, y_train, 'clf')
+    #plot_data(X_train, y_train, 'tree')
+
+
 df = pd.read_csv('dream_market_cocaine_listings.csv', delimiter=',', encoding ='latin-1')
 df = df[categories]
 
@@ -89,57 +136,12 @@ for category in categories:
     if category != 'escrow':
         df[category] = softmax(df[category])
 
-sns.pairplot(df.iloc[:1000,:])
 for category in categories:
     print(df[category].describe())
 
 print(df)
+boxplot = df.boxplot()
+plt.show()
 
 X = df.iloc[:, [0, 1, 2, 3, 4, 5]].values
 y = df.iloc[:, -1].values
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
-knn = KNeighborsClassifier(n_neighbors=3)
-pca = make_pipeline(StandardScaler(), PCA(n_components=2, random_state=0))
-pca.fit(X_train, y_train)
-
-knn.fit(pca.transform(X_train), y_train)
-
-acc_knn = knn.score(pca.transform(X_test), y_test)
-print(acc_knn)
-X_embedded = pca.transform(X)
-X_embedded = X_embedded[:1499]
-
-plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=y[:1499], s=30, cmap="Set1")
-plt.show()
-
-#test_k(X, y)
-
-plt.figure()
-model.fit(X_train, y_train)
-
-pca = PCA(n_components=3)
-components = pca.fit_transform(df)
-print(components)
-total_var = pca.explained_variance_ratio_.sum() * 100
-
-fig = px.scatter_3d(
-    components, x=0, y=1, z=2, color=df['escrow'],
-    title=f'Total Explained Variance: {total_var:.2f}%',
-    labels={'0': 'PC 1', '1': 'PC 2', '2': 'PC 3'}
-)
-fig.show()
-
-
-knn.fit(X_train, y_train)
-y_pred = knn.predict(X_test)
-
-print(test1, test2, sep='\n')
-print(test_pred1, test_pred2)
-
-acc = accuracy_score(y_test, y_pred)
-print(acc)
-
-# график
-#plot_data(X_train, y_train, 'clf')
-#plot_data(X_train, y_train, 'tree')
