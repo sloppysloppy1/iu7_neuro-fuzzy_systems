@@ -24,8 +24,11 @@ from prettytable import PrettyTable
 
 le = LabelEncoder()
 categories = ['product_title', 'ships_from_to', 'quality', 'btc_price', 'cost_per_gram', 'product_link', 'escrow']
+
 cmap_light = ListedColormap(['#FFAAAA', '#AAFFAA'])
 cmap_bold = ListedColormap(['#DC143C', '#006400'])
+colors = {0: 'red', 1: 'green'}
+resolution = 1e-4
 
 def test_k(X, y):
     F_measures = []
@@ -53,77 +56,34 @@ def test_k(X, y):
     plt.ylabel('F_measure')
     plt.show()
 
+    return F_measures.index(max(F_measures)) + 2
 
-def plot_data(X_train, y_train, clf = 'knn'):
-    X = X_train[:, 4:6]
-    y = y_train
-    h = .02
-    if clf == 'knn':
-        clf = KNeighborsClassifier(n_neighbors=3)
+def plot(X_test, y_test, X_train, y_train, ax, type = 'knn', k_neighbours = 0):
+    if type == 'knn':
+        clf = KNeighborsClassifier(n_neighbors=k_neighbours)
     else:
         clf = DecisionTreeClassifier()
-    clf.fit(X, y)
 
-    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-    xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                         np.arange(y_min, y_max, h))
+    clf.fit(X_train, y_train)
+    y_predict = clf.predict(X_test)
+
+    x_min, x_max = X_train[:, 0].min(), X_train[:, 0].max()
+    y_min, y_max = X_train[:, 1].min(), X_train[:, 1].max()
+
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, resolution),
+                         np.arange(y_min, y_max, resolution))
     Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
     Z = Z.reshape(xx.shape)
 
-    plt.figure()
-    plt.pcolormesh(xx, yy, Z, cmap=cmap_light)
-    plt.scatter(X[:, 0], X[:, 1], c=y, cmap=cmap_bold)
-    plt.xlim(xx.min(), xx.max())
-    plt.ylim(yy.min(), yy.max())
-    plt.show()
+    ax.contourf(xx, yy, Z, cmap=cmap_light)
+    ax.axis('tight')
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
-    knn = KNeighborsClassifier(n_neighbors=3)
-    pca = make_pipeline(StandardScaler(), PCA(n_components=2, random_state=0))
-    pca.fit(X_train, y_train)
+    for label in np.unique(y_test):
+        indices = np.where(y_test == label)
+        ax.scatter(X_test[indices, 0], X_test[indices, 1], c=colors[label], alpha=0.8, cmap=cmap_bold,
+                    label='class {}'.format(label))
 
-    knn.fit(pca.transform(X_train), y_train)
-
-    acc_knn = knn.score(pca.transform(X_test), y_test)
-    print(acc_knn)
-    X_embedded = pca.transform(X)
-    X_embedded = X_embedded[:1499]
-
-    plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=y[:1499], s=30, cmap="Set1")
-    plt.show()
-
-    #test_k(X, y)
-
-    plt.figure()
-    model.fit(X_train, y_train)
-
-    pca = PCA(n_components=3)
-    components = pca.fit_transform(df)
-    print(components)
-    total_var = pca.explained_variance_ratio_.sum() * 100
-
-    fig = px.scatter_3d(
-        components, x=0, y=1, z=2, color=df['escrow'],
-        title=f'Total Explained Variance: {total_var:.2f}%',
-        labels={'0': 'PC 1', '1': 'PC 2', '2': 'PC 3'}
-    )
-    fig.show()
-
-
-    knn.fit(X_train, y_train)
-    y_pred = knn.predict(X_test)
-
-    print(test1, test2, sep='\n')
-    print(test_pred1, test_pred2)
-
-    acc = accuracy_score(y_test, y_pred)
-    print(acc)
-
-    # график
-    #plot_data(X_train, y_train, 'clf')
-    #plot_data(X_train, y_train, 'tree')
-
+    print(type, accuracy_score(y_test, y_predict))
 
 df = pd.read_csv('dream_market_cocaine_listings.csv', delimiter=',', encoding ='latin-1')
 df = df[categories]
@@ -140,8 +100,34 @@ for category in categories:
     print(df[category].describe())
 
 print(df)
-boxplot = df.boxplot()
-plt.show()
+#boxplot = df.boxplot()
+#plt.show()
+# без выбросов
+df = df[(df.product_title < 0.06) & (df.btc_price < 0.06) & (df.cost_per_gram < 0.06) & (df.product_link < 0.06)]
+print(df)
+#boxplot = df.boxplot()
+#plt.show()
 
 X = df.iloc[:, [0, 1, 2, 3, 4, 5]].values
 y = df.iloc[:, -1].values
+
+#test_k(X,y)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y)
+
+pca_model = PCA(n_components=2)
+pca_model.fit(X_train)
+
+X_train = pca_model.transform(X_train)
+X_test = pca_model.transform(X_test)
+
+X = pca_model.transform(X)
+k_neighbours = test_k(X,y)
+print(k_neighbours)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+
+plot(X_test, y_test, X_train, y_train, ax1, 'knn', k_neighbours)
+plot(X_test, y_test, X_train, y_train, ax2, 'tree')
+
+plt.show()
