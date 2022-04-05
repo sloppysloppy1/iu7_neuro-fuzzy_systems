@@ -60,12 +60,12 @@ def test_k(X, y):
 
 def plot(X_test, y_test, X_train, y_train, ax, type = 'knn', k_neighbours = 0):
     if type == 'knn':
-        clf = KNeighborsClassifier(n_neighbors=k_neighbours)
+        clf = KNeighborsClassifier()
     else:
         clf = DecisionTreeClassifier()
 
     clf.fit(X_train, y_train)
-    y_predict = clf.predict(X_test)
+    y_pred = clf.predict(X_test)
 
     x_min, x_max = X_train[:, 0].min(), X_train[:, 0].max()
     y_min, y_max = X_train[:, 1].min(), X_train[:, 1].max()
@@ -83,7 +83,10 @@ def plot(X_test, y_test, X_train, y_train, ax, type = 'knn', k_neighbours = 0):
         ax.scatter(X_test[indices, 0], X_test[indices, 1], c=colors[label], alpha=0.8, cmap=cmap_bold,
                     label='class {}'.format(label))
 
-    print(type, accuracy_score(y_test, y_predict))
+    _confusion_matrix = confusion_matrix(y_test, y_pred)
+    tn, fp, fn, tp = _confusion_matrix.ravel()
+    F_measure = tp / (2 * tp + fp + fn)
+    print(type, F_measure)
 
 df = pd.read_csv('dream_market_cocaine_listings.csv', delimiter=',', encoding ='latin-1')
 df = df[categories]
@@ -123,7 +126,6 @@ X_test = pca_model.transform(X_test)
 
 X = pca_model.transform(X)
 k_neighbours = test_k(X,y)
-print(k_neighbours)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
 
