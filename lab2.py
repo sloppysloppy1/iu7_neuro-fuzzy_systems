@@ -12,6 +12,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.pipeline import make_pipeline
@@ -24,11 +25,12 @@ from prettytable import PrettyTable
 
 le = LabelEncoder()
 categories = ['product_title', 'ships_from_to', 'quality', 'btc_price', 'cost_per_gram', 'product_link', 'escrow']
+tab = PrettyTable(['type', 'conf_matrix', '0', '1', 'accuracy', 'R', 'P', 'F_measure'])
 
 cmap_light = ListedColormap(['#FFAAAA', '#AAFFAA'])
 cmap_bold = ListedColormap(['#DC143C', '#006400'])
 colors = {0: 'red', 1: 'green'}
-resolution = 1e-4
+resolution = 1e-6
 
 def test_k(X, y):
     F_measures = []
@@ -58,11 +60,13 @@ def test_k(X, y):
 
     return F_measures.index(max(F_measures)) + 2
 
-def plot(X_test, y_test, X_train, y_train, ax, type = 'knn', k_neighbours = 0):
-    if type == 'knn':
+def plot(X_test, y_test, X_train, y_train, ax, type = 'frst', k_neighbours = 0):
+    if type == 'frst':
+        clf = RandomForestClassifier()
+    elif type == 'knn':
         clf = KNeighborsClassifier()
     else:
-        clf = DecisionTreeClassifier()
+        clf = DecisionTreeClassifier(random_state = 1)
 
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
@@ -85,8 +89,14 @@ def plot(X_test, y_test, X_train, y_train, ax, type = 'knn', k_neighbours = 0):
 
     _confusion_matrix = confusion_matrix(y_test, y_pred)
     tn, fp, fn, tp = _confusion_matrix.ravel()
+    acc = (tp + tn) / (tp + tn + fp + fn)
+    R = tp / (tp + fn)
+    P = tp / (tp + fp)
     F_measure = tp / (2 * tp + fp + fn)
-    print(type, F_measure)
+    tab.add_row(['', 0] + list(_confusion_matrix[0]) + [''] * 4)
+    tab.add_row([type, 1] + list(_confusion_matrix[1]) + [acc, R, P, F_measure])
+
+    return F_measure
 
 df = pd.read_csv('dream_market_cocaine_listings.csv', delimiter=',', encoding ='latin-1')
 df = df[categories]
@@ -95,28 +105,25 @@ print(df)
 
 for category in categories:
     df[category] = le.fit_transform(df[category])
-
     if category != 'escrow':
         df[category] = softmax(df[category])
-
-for category in categories:
-    print(df[category].describe())
+        #MinMaxScaler(df[category])
 
 print(df)
-#boxplot = df.boxplot()
-#plt.show()
+
+boxplot = df.boxplot()
+plt.show()
 # без выбросов
-df = df[(df.product_title < 0.06) & (df.btc_price < 0.06) & (df.cost_per_gram < 0.06) & (df.product_link < 0.06)]
+df = df[(df.product_title < 0.00011) & (df.btc_price < 0.00011) & (df.cost_per_gram < 0.00011)
+    & (df.product_link < 0.00011) & (df.ships_from_to < 0.00011) & (df.quality < 0.00011) ]
 print(df)
-#boxplot = df.boxplot()
-#plt.show()
+boxplot = df.boxplot()
+plt.show()
 
 X = df.iloc[:, [0, 1, 2, 3, 4, 5]].values
 y = df.iloc[:, -1].values
 
-#test_k(X,y)
-
-X_train, X_test, y_train, y_test = train_test_split(X, y)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = .33)
 
 pca_model = PCA(n_components=2)
 pca_model.fit(X_train)
@@ -125,11 +132,15 @@ X_train = pca_model.transform(X_train)
 X_test = pca_model.transform(X_test)
 
 X = pca_model.transform(X)
-k_neighbours = test_k(X,y)
+#k_neighbours = test_k(X,y)
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 8))
+ax1.set_title('forest')
+ax2.set_title('tree')
+ax3.set_title('neighbours')
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
-
-plot(X_test, y_test, X_train, y_train, ax1, 'knn', k_neighbours)
+plot(X_test, y_test, X_train, y_train, ax1, 'frst')
 plot(X_test, y_test, X_train, y_train, ax2, 'tree')
+plot(X_test, y_test, X_train, y_train, ax3, 'knn')
+print(tab)
 
 plt.show()
